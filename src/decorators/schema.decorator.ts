@@ -3,6 +3,11 @@ import { formatSwaggerRef } from "../utils/format-swagger-ref";
 
 export function ApiSchema() {
   return (constructor: Function) => {
+    if (SCHEMAS[constructor.name]) {
+      clearCurrentSchemaProperties()
+      return
+    }
+
     const required: string[] = [];
 
     for (const key in CURRENT_SCHEMA_PROPERTIES) {

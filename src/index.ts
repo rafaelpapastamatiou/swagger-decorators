@@ -11,6 +11,7 @@ export { formatSwaggerRef } from "./utils/format-swagger-ref"
 
 interface GenerateSwaggerFileProps {
   controllersGlob: string;
+  schemasGlob: string;
   swaggerFilePath: string;
   base: {
     openapi: string;
@@ -27,13 +28,21 @@ interface GenerateSwaggerFileProps {
 
 export async function generateSwaggerFile({
   controllersGlob,
+  schemasGlob,
   base,
   swaggerFilePath,
 }: GenerateSwaggerFileProps) {
-  const files = await glob.promise(controllersGlob)
-
-  for (const file of files) {
-    await import(file)
+  const [schemas, controllers] = await Promise.all([
+    glob.promise(schemasGlob),
+    glob.promise(controllersGlob),
+  ])
+  
+  for (const schema of schemas) {
+    await import(schema)
+  }
+  
+  for (const controller of controllers) {
+    await import(controller)
   }
 
   const swaggerFile = {
