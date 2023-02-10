@@ -15,7 +15,8 @@
     "reflect-metadata": "^0.1.13"
   },
   "scripts": {
-    "example": "ts-node ./example/index.ts"
+    "example": "ts-node ./example/index.ts",
+    "build": "rm -rf ./dist && tsc --project tsconfig.build.json"
   },
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
