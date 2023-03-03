@@ -1,30 +1,31 @@
 import { ApiSchema, ApiSchemaProperty } from "../../src"
 
+export class MoreInfo {
+  @ApiSchemaProperty()
+  email: string;
+}
+
+export class NestedObject {
+  @ApiSchemaProperty({
+    arrayItemClass: MoreInfo
+  })
+  moreInfo: MoreInfo[];
+}
+
+export class ArrayItem {
+  @ApiSchemaProperty()
+  name: string;
+
+  @ApiSchemaProperty()
+  obj: NestedObject;
+}
+
 @ApiSchema()
 export class CreateUserInputDTO {
   @ApiSchemaProperty({
-    required: true,
-    example: "John"
+    arrayItemClass: ArrayItem
   })
-  firstName: string;
-
-  @ApiSchemaProperty({
-    required: true,
-    example: "Doe"
-  })
-  lastName: string;
-
-  @ApiSchemaProperty({
-    required: true,
-    example: "johndoe@email.com"
-  })
-  email: string;
-
-  @ApiSchemaProperty({
-    required: true,
-    example: "123456"
-  })
-  password: string;
+  arr: ArrayItem[];
 }
 
 @ApiSchema()
@@ -41,7 +42,7 @@ export class CreateUserOutputDTO {
   })
   email: string;
 
-  constructor( name: string,  email: string){
+  constructor(name: string, email: string) {
     this.name = name;
     this.email = email;
   }

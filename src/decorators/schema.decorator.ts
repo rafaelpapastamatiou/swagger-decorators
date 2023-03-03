@@ -1,5 +1,23 @@
-import { CURRENT_SCHEMA_PROPERTIES, SCHEMAS, Schema, SchemaProperty, SchemaRef, clearCurrentSchemaProperties } from "../data/schemas"
+import {
+  CURRENT_SCHEMA_PROPERTIES,
+  CURRENT_SCHEMA_NAME,
+  ALL_LOADED_CLASSES,
+  SCHEMAS,
+  Schema,
+  SchemaProperty,
+  clearCurrentSchemaProperties,
+  changeCurrentSchemaName,
+} from "../data/schemas"
+
 import { formatSwaggerRef } from "../utils/format-swagger-ref";
+
+const supportedTypes = new Set([
+  "string",
+  "date",
+  "number",
+  "boolean",
+  "array"
+])
 
 export function ApiSchema() {
   return (constructor: Function) => {
@@ -33,31 +51,164 @@ interface ApiSchemaPropertyProps {
   type?: string;
   required?: boolean;
   example?: string;
-  items?: SchemaRef;
+  arrayItemClass?: Function;
+  arrayItemSchema?: string;
 }
 
 export function ApiSchemaProperty({
   required,
   example,
-  items,
   type,
-}: ApiSchemaPropertyProps) {
-  return (target: any, propertyKey: string) => {
-    const propertyType: string = Reflect.getMetadata(
+  arrayItemClass,
+  arrayItemSchema,
+}: ApiSchemaPropertyProps = {}): PropertyDecorator {
+  return (target, propertyKey) => {
+    if (!CURRENT_SCHEMA_NAME) {
+      changeCurrentSchemaName(target.constructor.name)
+    }
+
+    if (
+      CURRENT_SCHEMA_NAME &&
+      CURRENT_SCHEMA_NAME !== target.constructor.name
+    ) {
+      changeCurrentSchemaName(target.constructor.name)
+      clearCurrentSchemaProperties()
+    }
+
+    let originalPropertyType: string = Reflect.getMetadata(
       "design:type",
       target,
       propertyKey,
     ).name;
 
+    let propertyType = originalPropertyType.toLowerCase()
+
+    if (!supportedTypes.has(originalPropertyType.toLowerCase())) {
+      propertyType = "object";
+    }
+
+    if (propertyType === "date") {
+      propertyType = "string";
+    }
+
+    if (
+      propertyType === "array" &&
+      !arrayItemClass &&
+      !arrayItemSchema
+    ) {
+      throw new Error("You must pass a Class or a Schema to be the shape of the array items")
+    }
+
+    let items
+
+    if (propertyType === "array" && arrayItemSchema) {
+      propertyType = `Array:Schema:${arrayItemSchema}`
+      items = formatSwaggerRef(arrayItemSchema)
+    }
+    if (propertyType === "array" && arrayItemClass) {
+      propertyType = `Array:Class:${arrayItemClass.name}`
+      items = generateArrayDefinitionFromClass({
+        classDefinition: arrayItemClass
+      })
+    }
+
+    let properties
+    if (propertyType === "object") {
+      properties = getObjectProperties(originalPropertyType)
+    }
+
+    const formattedPropertyType = propertyType.startsWith("Array:")
+      ? "array"
+      : propertyType.toLowerCase()
+
     const newSchemaProperty: SchemaProperty = {
-      type: type || propertyType.toLowerCase(),
+      type: type || formattedPropertyType,
       example,
       required,
-      items: items && items.$ref
-        ? formatSwaggerRef(items.$ref)
-        : undefined,
+      items,
+      properties
     };
 
     CURRENT_SCHEMA_PROPERTIES[propertyKey] = newSchemaProperty
+
+    ALL_LOADED_CLASSES[target.constructor.name] = {
+      ...(ALL_LOADED_CLASSES[target.constructor.name] || {}),
+      [propertyKey]: {
+        type: propertyType === "object"
+          ? originalPropertyType
+          : propertyType,
+        example,
+        required,
+      }
+    }
   };
+}
+
+interface GenerateArrayDefinitionFromClassProps {
+  classDefinition: Function;
+}
+function generateArrayDefinitionFromClass({
+  classDefinition,
+}: GenerateArrayDefinitionFromClassProps) {
+  const name = classDefinition.name
+
+  if (supportedTypes.has(name.toLowerCase())) {
+    return { type: name.toLowerCase() }
+  }
+
+  const arrayType = getObjectProperties(name)
+
+  return { type: "object", properties: arrayType }
+}
+
+function getObjectProperties(className: string) {
+  const data = ALL_LOADED_CLASSES[className]
+
+  if (!data) return undefined
+
+  for (const key in data) {
+    const type = data[key].type
+
+    if (supportedTypes.has(type.toLowerCase())) continue
+
+    if (type.startsWith("Array:")) {
+      const [
+        _,
+        definitionType,
+        value
+      ] = type.split(":")
+
+      if (definitionType === "Class") {
+        const arrayItemData = getObjectProperties(value)
+
+        let items
+
+        if (arrayItemData) {
+          items = { type: "object", properties: arrayItemData }
+        }
+        else if (supportedTypes.has(value.toLowerCase())) {
+          items = { type: value.toLowerCase() }
+        }
+
+        data[key] = {
+          type: "array",
+          items,
+        }
+      }
+      else {
+        data[key] = {
+          type: "array",
+          items: formatSwaggerRef(value)
+        }
+      }
+    }
+    else {
+      data[key] = {
+        type: "object",
+        properties: getObjectProperties(data[key].type)
+      }
+    }
+  }
+
+  return data
 }
