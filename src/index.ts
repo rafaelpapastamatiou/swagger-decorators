@@ -3,7 +3,7 @@ import glob from "glob-promise"
 import fs from "fs/promises"
 
 import { PATHS } from "./data/paths";
-import { SCHEMAS } from "./data/schemas";
+import { SCHEMAS, clearLoadedClasses } from "./data/schemas";
 
 export { ApiPath } from "./decorators/path.decorator"
 export { ApiSchema, ApiSchemaProperty } from "./decorators/schema.decorator"
@@ -36,11 +36,12 @@ export async function generateSwaggerFile({
     glob.promise(schemasGlob),
     glob.promise(controllersGlob),
   ])
-  
+
   for (const schema of schemas) {
     await import(schema)
+    clearLoadedClasses();
   }
-  
+
   for (const controller of controllers) {
     await import(controller)
   }

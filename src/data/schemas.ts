@@ -12,6 +12,10 @@ export function changeCurrentSchemaName(newName: string) {
   CURRENT_SCHEMA_NAME = newName
 }
 
+export function clearLoadedClasses() {
+  ALL_LOADED_CLASSES = {};
+}
+
 export type SchemaRef = {
   $ref?: any;
   type?: string;
