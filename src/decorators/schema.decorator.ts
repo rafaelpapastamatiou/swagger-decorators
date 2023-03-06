@@ -38,7 +38,9 @@ export function ApiSchema() {
 
     const newSchema: Schema = {
       type: "object",
-      required,
+      required: required.length > 0
+        ? required
+        : undefined,
       properties: CURRENT_SCHEMA_PROPERTIES,
     };
 
