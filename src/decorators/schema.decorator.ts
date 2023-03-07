@@ -55,6 +55,7 @@ interface ApiSchemaPropertyProps {
   example?: string;
   arrayItemClass?: Function;
   arrayItemSchema?: string;
+  debug?: boolean;
 }
 
 export function ApiSchemaProperty({
@@ -63,8 +64,11 @@ export function ApiSchemaProperty({
   type,
   arrayItemClass,
   arrayItemSchema,
+  debug = false
 }: ApiSchemaPropertyProps = {}): PropertyDecorator {
   return (target, propertyKey) => {
+    if (debug) console.log(`Property key: ${propertyKey.toString()}`)
+
     if (!CURRENT_SCHEMA_NAME) {
       changeCurrentSchemaName(target.constructor.name)
     }
@@ -83,8 +87,17 @@ export function ApiSchemaProperty({
       propertyKey,
     ).name;
 
-    if (!originalPropertyType) {
+    if (debug) {
+      console.log(`Original Property type: ${originalPropertyType}`)
+      console.log(`Type (manually): ${type}`)
+    }
+
+    if (!originalPropertyType && type) {
       originalPropertyType = type;
+
+      if (debug) {
+        console.log(`Original property type (manually): ${originalPropertyType}`)
+      }
     }
 
     if (!originalPropertyType) {
@@ -97,10 +110,12 @@ export function ApiSchemaProperty({
 
     if (!supportedTypes.has(originalPropertyType.toLowerCase())) {
       propertyType = "object";
+      if (debug) console.log(`New property type (object/class): ${propertyType}`)
     }
 
     if (propertyType === "date") {
       propertyType = "string";
+      if (debug) console.log(`New property type (date): ${propertyType}`)
     }
 
     if (
@@ -116,12 +131,14 @@ export function ApiSchemaProperty({
     if (propertyType === "array" && arrayItemSchema) {
       propertyType = `Array:Schema:${arrayItemSchema}`
       items = formatSwaggerRef(arrayItemSchema)
+      if (debug) console.log(`New property type (array/schema): ${propertyType}`)
     }
     if (propertyType === "array" && arrayItemClass) {
       propertyType = `Array:Class:${arrayItemClass.name}`
       items = generateArrayDefinitionFromClass({
         classDefinition: arrayItemClass
       })
+      if (debug) console.log(`New property type (array/class): ${propertyType}`)
     }
 
     let properties
@@ -132,6 +149,8 @@ export function ApiSchemaProperty({
     const formattedPropertyType = propertyType.startsWith("Array:")
       ? "array"
       : propertyType.toLowerCase()
+
+    if (debug) console.log(`Formatted property type: ${formattedPropertyType}`)
 
     const newSchemaProperty: SchemaProperty = {
       type: type || formattedPropertyType,
