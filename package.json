@@ -1,7 +1,7 @@
 {
   "name": "swagger-decorators",
   "description": "Generate swagger file using decorators.",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "license": "MIT",
   "devDependencies": {
     "@types/glob": "^8.0.1",
