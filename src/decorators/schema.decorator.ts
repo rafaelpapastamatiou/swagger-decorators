@@ -83,6 +83,8 @@ export function ApiSchemaProperty({
       propertyKey,
     ).name;
 
+    if (!originalPropertyType) return
+
     let propertyType = originalPropertyType.toLowerCase()
 
     if (!supportedTypes.has(originalPropertyType.toLowerCase())) {
