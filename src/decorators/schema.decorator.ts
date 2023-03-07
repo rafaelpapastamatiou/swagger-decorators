@@ -77,13 +77,21 @@ export function ApiSchemaProperty({
       clearCurrentSchemaProperties()
     }
 
-    let originalPropertyType: string = Reflect.getMetadata(
+    let originalPropertyType = Reflect.getMetadata(
       "design:type",
       target,
       propertyKey,
     ).name;
 
-    if (!originalPropertyType) return
+    if (!originalPropertyType) {
+      originalPropertyType = type;
+    }
+
+    if (!originalPropertyType) {
+      throw new Error(
+        `Reflection could not detect the type for the property ${propertyKey.toString()}. Please, pass it manually using the "type" prop.`
+      )
+    }
 
     let propertyType = originalPropertyType.toLowerCase()
 
