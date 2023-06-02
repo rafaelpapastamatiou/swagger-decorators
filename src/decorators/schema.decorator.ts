@@ -1,17 +1,18 @@
 import {
-  CURRENT_SCHEMA_PROPERTIES,
-  CURRENT_SCHEMA_NAME,
-  ALL_LOADED_CLASSES,
   SCHEMAS,
-  Schema,
+  CLASSES,
   SchemaProperty,
-  clearCurrentSchemaProperties,
-  changeCurrentSchemaName,
 } from "../data/schemas"
 
-import { formatSwaggerRef } from "../utils/format-swagger-ref";
-
 const supportedTypes = new Set([
+  "String",
+  "Date",
+  "Number",
+  "Boolean",
+  "Array"
+])
+
+const supportedTypesLowerCase = new Set([
   "string",
   "date",
   "number",
@@ -19,227 +20,191 @@ const supportedTypes = new Set([
   "array"
 ])
 
+interface ApiSchemaPropertyProps {
+  type?: string | Function;
+  required?: boolean;
+  example?: string;
+  debug?: boolean;
+}
+
 export function ApiSchema() {
   return (constructor: Function) => {
-    if (SCHEMAS[constructor.name]) {
-      clearCurrentSchemaProperties()
-      return
-    }
+    const constructorName = constructor.name;
+
+    const c = CLASSES[constructorName];
+
+    if (!c) return;
 
     const required: string[] = [];
 
-    for (const key in CURRENT_SCHEMA_PROPERTIES) {
-      if (CURRENT_SCHEMA_PROPERTIES[key].required) {
+    const newC: {[key: string | symbol]: any} = {};
+    
+    for (const key in c) {
+      if (c[key].required) {
         required.push(key)
       }
 
-      delete CURRENT_SCHEMA_PROPERTIES[key].required
+      const { required: _req, ...propData } = c[key];
+      newC[key] = propData;
     }
 
-    const newSchema: Schema = {
+    SCHEMAS[constructorName] = {
       type: "object",
+      properties: newC,
       required: required.length > 0
         ? required
         : undefined,
-      properties: CURRENT_SCHEMA_PROPERTIES,
     };
-
-    SCHEMAS[constructor.name] = newSchema;
-    clearCurrentSchemaProperties()
   }
-}
-
-interface ApiSchemaPropertyProps {
-  type?: string;
-  required?: boolean;
-  example?: string;
-  arrayItemClass?: Function;
-  arrayItemSchema?: string;
-  debug?: boolean;
 }
 
 export function ApiSchemaProperty({
   required,
   example,
   type,
-  arrayItemClass,
-  arrayItemSchema,
   debug = false
 }: ApiSchemaPropertyProps = {}): PropertyDecorator {
   return (target, propertyKey) => {
-    if (debug) console.log(`Property key: ${propertyKey.toString()}`)
+    const constructorName = target.constructor.name;
 
-    if (!CURRENT_SCHEMA_NAME) {
-      changeCurrentSchemaName(target.constructor.name)
+    if (debug) console.log("Constructor name: ", constructorName);
+    if (debug) console.log(`Property key: ${propertyKey.toString()}`);
+
+    if (!CLASSES[constructorName]) {
+      CLASSES[constructorName] = {}
     }
 
-    if (
-      CURRENT_SCHEMA_NAME &&
-      CURRENT_SCHEMA_NAME !== target.constructor.name
-    ) {
-      changeCurrentSchemaName(target.constructor.name)
-      clearCurrentSchemaProperties()
-    }
-
-    let originalPropertyType = Reflect.getMetadata(
+    const originalPropertyType = Reflect.getMetadata(
       "design:type",
       target,
       propertyKey,
     ).name;
 
-    if (debug) {
-      console.log(`Original Property type: ${originalPropertyType}`)
-      console.log(`Type (manually): ${type}`)
-    }
+    type = checkType(type);
 
-    if (!originalPropertyType && type) {
-      originalPropertyType = type;
-
-      if (debug) {
-        console.log(`Original property type (manually): ${originalPropertyType}`)
-      }
-    }
-
-    if (!originalPropertyType) {
+    if (!originalPropertyType && !type) { 
       throw new Error(
         `Reflection could not detect the type for the property ${propertyKey.toString()}. Please, pass it manually using the "type" prop.`
-      )
+      );
     }
 
-    let propertyType = originalPropertyType.toLowerCase()
-
-    if (!supportedTypes.has(originalPropertyType.toLowerCase())) {
-      propertyType = "object";
-      if (debug) console.log(`New property type (object/class): ${propertyType}`)
+    if (debug) {
+      console.log(`Original Property type: ${originalPropertyType}`);
+      console.log(`Type (manually): ${type}`);
     }
 
-    if (propertyType === "date") {
-      propertyType = "string";
-      if (debug) console.log(`New property type (date): ${propertyType}`)
+    let realPropertyType, items, properties;
+
+    if (!supportedTypes.has(originalPropertyType)) {
+      realPropertyType = "object";
+      properties = generateClassDefinition(originalPropertyType)
+    }
+    else if (originalPropertyType === "Date") {
+      realPropertyType = "string";
+    }
+    else if (originalPropertyType === "Array") {
+      if (!type) {
+        throw new Error(
+          `You must explicitly pass the type if using an array.`
+        );
+      }
+
+      realPropertyType = `Array:${type}`;
+      items = generateArrayDefinition(type);
+    }
+    else {
+      realPropertyType = originalPropertyType.toLowerCase();
     }
 
-    if (
-      propertyType === "array" &&
-      !arrayItemClass &&
-      !arrayItemSchema
-    ) {
-      throw new Error("You must pass a Class or a Schema to be the shape of the array items")
-    }
-
-    let items
-
-    if (propertyType === "array" && arrayItemSchema) {
-      propertyType = `Array:Schema:${arrayItemSchema}`
-      items = formatSwaggerRef(arrayItemSchema)
-      if (debug) console.log(`New property type (array/schema): ${propertyType}`)
-    }
-    if (propertyType === "array" && arrayItemClass) {
-      propertyType = `Array:Class:${arrayItemClass.name}`
-      items = generateArrayDefinitionFromClass({
-        classDefinition: arrayItemClass
-      })
-      if (debug) console.log(`New property type (array/class): ${propertyType}`)
-    }
-
-    let properties
-    if (propertyType === "object") {
-      properties = getObjectProperties(originalPropertyType)
-    }
-
-    const formattedPropertyType = propertyType.startsWith("Array:")
+    if (debug) console.log(`Real property type: ${realPropertyType}`);
+    
+    const formattedPropertyType = realPropertyType.startsWith("Array:")
       ? "array"
-      : propertyType.toLowerCase()
+      : realPropertyType.toLowerCase();
 
-    if (debug) console.log(`Formatted property type: ${formattedPropertyType}`)
+    if (debug) console.log(`Formatted property type: ${realPropertyType}`);
 
-    const newSchemaProperty: SchemaProperty = {
+    const schemaProperty: SchemaProperty = {
       type: type || formattedPropertyType,
       example,
       required,
       items,
-      properties
-    };
-
-    CURRENT_SCHEMA_PROPERTIES[propertyKey] = newSchemaProperty
-
-    ALL_LOADED_CLASSES[target.constructor.name] = {
-      ...(ALL_LOADED_CLASSES[target.constructor.name] || {}),
-      [propertyKey]: {
-        type: propertyType === "object"
-          ? originalPropertyType
-          : propertyType,
-        example,
-        required,
-      }
+      properties,
     }
-  };
+
+    CLASSES[constructorName][propertyKey] = {
+      ...schemaProperty,
+      type: formattedPropertyType === "object"
+        ? originalPropertyType
+        : formattedPropertyType,
+    };
+    
+    if (debug) console.log("\n");
+  }
 }
 
-interface GenerateArrayDefinitionFromClassProps {
-  classDefinition: Function;
-}
-function generateArrayDefinitionFromClass({
-  classDefinition,
-}: GenerateArrayDefinitionFromClassProps) {
-  const name = classDefinition.name
+function checkType(type?: string | Function): string | undefined {
+  if (!type) return undefined;
 
-  if (supportedTypes.has(name.toLowerCase())) {
-    return { type: name.toLowerCase() }
+  if (typeof type === "string") return type;
+
+  return type.prototype.constructor.name;
+}
+
+function generateArrayDefinition(constructorName: string) {
+  if (supportedTypes.has(constructorName)) {
+    return { type: constructorName.toLowerCase() };
   }
 
-  const arrayType = getObjectProperties(name)
+  const classDefinition = generateClassDefinition(constructorName);
 
-  return { type: "object", properties: arrayType }
+  return { type: "object", properties: classDefinition };
 }
 
-function getObjectProperties(className: string) {
-  const data = ALL_LOADED_CLASSES[className]
+function generateClassDefinition(className: string) {
+  const c = CLASSES[className];
 
-  if (!data) return undefined
+  if (!c) return undefined;
 
-  for (const key in data) {
-    const type = data[key].type
+  for (const key in c) {
+    const type = c[key].type;
 
-    if (supportedTypes.has(type.toLowerCase())) continue
-
+    if (supportedTypesLowerCase.has(type)) continue;
+    
     if (type.startsWith("Array:")) {
       const [
         _,
-        definitionType,
-        value
-      ] = type.split(":")
+        itemClassName,
+      ] = type.split(":");
 
-      if (definitionType === "Class") {
-        const arrayItemData = getObjectProperties(value)
+      const arrayItemClassDefinition = generateClassDefinition(
+        itemClassName
+      );
 
-        let items
+      let items
 
-        if (arrayItemData) {
-          items = { type: "object", properties: arrayItemData }
-        }
-        else if (supportedTypes.has(value.toLowerCase())) {
-          items = { type: value.toLowerCase() }
-        }
-
-        data[key] = {
-          type: "array",
-          items,
-        }
+      if (arrayItemClassDefinition) {
+        items = {
+          type: "object",
+          properties: arrayItemClassDefinition,
+        };
       }
-      else {
-        data[key] = {
-          type: "array",
-          items: formatSwaggerRef(value)
-        }
+      else if(supportedTypes.has(itemClassName)) {
+        items = { type: itemClassName.toLowerCase() };
+      }
+
+      c[key] = {
+        type: "array",
+        items,
       }
     }
     else {
-      data[key] = {
+      c[key] = {
         type: "object",
-        properties: getObjectProperties(data[key].type)
+        properties: generateClassDefinition(type),
       }
     }
   }
 
-  return data
+  return c;
 }

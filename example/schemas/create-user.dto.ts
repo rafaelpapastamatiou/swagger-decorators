@@ -7,7 +7,7 @@ export class MoreInfo {
 
 export class NestedObject {
   @ApiSchemaProperty({
-    arrayItemClass: MoreInfo
+    type: MoreInfo
   })
   moreInfo: MoreInfo[];
 }
@@ -23,7 +23,7 @@ export class ArrayItem {
 @ApiSchema()
 export class CreateUserInputDTO {
   @ApiSchemaProperty({
-    arrayItemClass: ArrayItem
+    type: ArrayItem
   })
   arr: ArrayItem[];
 }

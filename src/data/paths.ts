@@ -10,7 +10,7 @@ export type Param = {
 };
 
 export interface Response {
-  responseSchema?: string;
+  responseSchema?: string | Function;
   responseMessage?: string;
   description: string;
   content?: {
@@ -27,6 +27,7 @@ export interface Responses {
 export interface Path {
   [method: string]: {
     description?: string;
+    tags?: string[];
     parameters?: Param[];
     responses?: Responses;
     requestBody?: RequestBody;

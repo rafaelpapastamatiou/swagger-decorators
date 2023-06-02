@@ -1,16 +1,17 @@
 import { ApiPath } from "../../src";
-import { CreateUserOutputDTO } from "../schemas/create-user.dto";
+import { CreateUserInputDTO, CreateUserOutputDTO } from "../schemas/create-user.dto";
 
 export class UserController {
   @ApiPath({
     method: "post",
+    tags: ["users"],
     description: "Creates a new user",
     path: "/users",
-    requestBodySchema: "CreateUserInputDTO",
+    requestBodySchema: CreateUserInputDTO,
     responses: {
       200: {
         description: "User created",
-        responseSchema: "CreateUserOutputDTO"
+        responseSchema: CreateUserOutputDTO
       }
     }
   })

@@ -4,15 +4,17 @@ import { formatSwaggerRef } from "../utils/format-swagger-ref";
 interface ApiPathProps {
   path?: string;
   method: "get" | "post" | "put" | "delete" | "patch";
+  tags?: string[];
   description?: string;
   parameters?: Param[];
-  requestBodySchema?: string;
+  requestBodySchema?: string | Function;
   requestBody?: RequestBody;
   responses?: Responses;
 }
 
 export function ApiPath({
   path = "",
+  tags,
   method,
   description,
   parameters = [],
@@ -23,17 +25,16 @@ export function ApiPath({
   for (const key in responses) {
     const responseSchema = responses[key].responseSchema
     const responseMessage = responses[key].responseMessage
-    const responseContent = responses[key].content
-
-    if (!responseSchema && !responseContent && !responseMessage) {
-      throw new Error("Response must have content, schema or message.")
-    }
 
     if (responseSchema) {
+      const responseSchemaName = typeof responseSchema === "string"
+        ? responseSchema
+        : responseSchema.name;
+
       responses[key].content = {
         ...responses[key].content,
         "application/json": {
-          schema: formatSwaggerRef(responseSchema)
+          schema: formatSwaggerRef(responseSchemaName)
         }
       }
 
@@ -55,17 +56,27 @@ export function ApiPath({
     }
   }
 
+  let requestBodySchemaName: string | undefined;
+
+  if (requestBodySchema && typeof requestBodySchema === "string") {
+    requestBodySchemaName = requestBodySchema;
+  }
+  else if (requestBodySchema && typeof requestBodySchema === "function") {
+    requestBodySchemaName = requestBodySchema.name;
+  }
+
   const newPath: Path = {
     [method]: {
       description,
       parameters,
+      tags,
       responses,
-      requestBody: requestBodySchema
+      requestBody: requestBodySchemaName
         ? {
           required: true,
           content: {
             "application/json": {
-              schema: formatSwaggerRef(requestBodySchema)
+              schema: formatSwaggerRef(requestBodySchemaName)
             }
           }
         }

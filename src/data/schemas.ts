@@ -1,20 +1,5 @@
 export const SCHEMAS: { [key: string]: Schema } = {};
-export let CURRENT_SCHEMA_PROPERTIES: SchemaProperties = {};
-export let ALL_LOADED_CLASSES: AllLoadedClassesProperties = {};
-
-export function clearCurrentSchemaProperties() {
-  CURRENT_SCHEMA_PROPERTIES = {}
-}
-
-export let CURRENT_SCHEMA_NAME = ""
-
-export function changeCurrentSchemaName(newName: string) {
-  CURRENT_SCHEMA_NAME = newName
-}
-
-export function clearLoadedClasses() {
-  ALL_LOADED_CLASSES = {};
-}
+export const CLASSES: { [key: string | symbol]: any } = {};
 
 export type SchemaRef = {
   $ref?: any;
@@ -33,11 +18,6 @@ export type Schema = {
 
 export type SchemaProperties = {
   [key: string | symbol]: SchemaProperty;
-}
-
-export type AllLoadedClassesProperties = {
-  [key: string | symbol]: any;
-
 }
 
 export type SchemaProperty = {
