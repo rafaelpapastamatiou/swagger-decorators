@@ -284,8 +284,6 @@ export function ApiRoute({
       ...PATHS[path],
       [method]: CONTROLLERS[constructorName][propertyKey],
     }
-
-    console.log("PATHS", PATHS);
   };
 }
 
