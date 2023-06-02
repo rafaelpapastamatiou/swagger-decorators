@@ -1,17 +1,6 @@
 import { SchemaRef } from "src/data/schemas";
-import { PATHS, CONTROLLERS, Param, Path, RequestBody, Responses, Response } from "../data/paths";
+import { PATHS, CONTROLLERS, Response } from "../data/paths";
 import { formatSwaggerRef } from "../utils/format-swagger-ref";
-
-interface ApiPathProps {
-  path?: string;
-  method: "get" | "post" | "put" | "delete" | "patch";
-  tags?: string[];
-  description?: string;
-  parameters?: Param[];
-  requestBodySchema?: string | Function;
-  requestBody?: RequestBody;
-  responses?: Responses;
-}
 
 export function ApiTags(tags: string | string[]) {
   return (
