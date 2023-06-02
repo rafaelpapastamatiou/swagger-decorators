@@ -1,7 +1,12 @@
 import { SchemaRef } from "./schemas";
 
-export const PATHS: Paths = {};
-export const CONTROLLERS: Controllers = {};
+export let PATHS: Paths = {};
+export let CONTROLLERS: Controllers = {};
+
+export function clearPaths() {
+  PATHS = {};
+  CONTROLLERS = {};
+}
 
 export type Controllers = {
   [controller: string]: Controller;
@@ -44,6 +49,7 @@ export interface PathOptions {
   parameters?: Param[];
   responses?: Responses;
   requestBody?: RequestBody;
+  security?: Security[];
 }
 
 export interface RequestBody {
@@ -58,4 +64,8 @@ export interface RequestBody {
 
 export interface Paths {
   [path: string]: Path;
+}
+
+export interface Security {
+  [security: string]: [];
 }

@@ -14,6 +14,8 @@ async function run() {
     controllersGlob: path.join(__dirname, "controllers", "**", "*"),
     schemasGlob: path.join(__dirname, "schemas", "**", "*"),
     swaggerFilePath: path.join(__dirname, "swagger.json"),
+    bearer: true,
+    apiKey: true,
   })
 }
 

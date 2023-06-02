@@ -1,5 +1,10 @@
-export const SCHEMAS: { [key: string]: Schema } = {};
-export const CLASSES: { [key: string | symbol]: any } = {};
+export let SCHEMAS: { [key: string]: Schema } = {};
+export let CLASSES: { [key: string | symbol]: any } = {};
+
+export function clearSchemas() {
+  SCHEMAS = {};
+  CLASSES = {};
+}
 
 export type SchemaRef = {
   $ref?: any;

@@ -1,4 +1,4 @@
-import { ApiTags, ApiBody, ApiResponse, ApiParam, ApiQuery, ApiRoute } from "../../src";
+import { ApiTags, ApiBody, ApiResponse, ApiParam, ApiQuery, ApiRoute, ApiBearerAuth } from "../../src";
 import { CreateUserInputDTO, CreateUserOutputDTO } from "../schemas/create-user.dto";
 
 export class UserController {
@@ -8,6 +8,7 @@ export class UserController {
   @ApiResponse({ status: 201, schema: CreateUserOutputDTO })
   @ApiParam({ name: "name", example: "Rafael Papastamatiou" })
   @ApiQuery({ name: "id", example: "abc", type: "string" })
+  @ApiBearerAuth()
   createUser(req: any, res: any) {
     return new CreateUserOutputDTO("John Doe", "johndoe@email.com")
   }

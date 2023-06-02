@@ -287,6 +287,39 @@ export function ApiRoute({
   };
 }
 
+export function ApiBearerAuth() {
+  return (
+    target: any,
+    propertyKey: string,
+    _descriptor: PropertyDescriptor,
+  ) => {
+    const constructorName = target.constructor.name;
+    prepareController(constructorName, propertyKey);
+
+    if (!CONTROLLERS[constructorName][propertyKey].security) {
+      CONTROLLERS[constructorName][propertyKey].security = [];
+    }
+
+    CONTROLLERS[constructorName][propertyKey].security!.push({ "ApiBearerAuth": [] })
+  };
+}
+
+export function ApiKeyAuth() {
+  return (
+    target: any,
+    propertyKey: string,
+    _descriptor: PropertyDescriptor,
+  ) => {
+    const constructorName = target.constructor.name;
+    prepareController(constructorName, propertyKey);
+
+    if (!CONTROLLERS[constructorName][propertyKey].security) {
+      CONTROLLERS[constructorName][propertyKey].security = [];
+    }
+    CONTROLLERS[constructorName][propertyKey].security!.push({ "ApiKeyAuth": [] })
+  };
+}
+
 
 function prepareController(controller: string, method: string) {
   if (!CONTROLLERS[controller]) {
