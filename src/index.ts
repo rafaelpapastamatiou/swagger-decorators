@@ -5,7 +5,15 @@ import fs from "fs/promises"
 import { PATHS } from "./data/paths";
 import { SCHEMAS } from "./data/schemas";
 
-export { ApiPath } from "./decorators/path.decorator"
+export {
+  ApiTags,
+  ApiBody,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiHeader,
+  ApiRoute,
+} from "./decorators/path.decorator"
 export { ApiSchema, ApiSchemaProperty } from "./decorators/schema.decorator"
 export { formatSwaggerRef } from "./utils/format-swagger-ref"
 

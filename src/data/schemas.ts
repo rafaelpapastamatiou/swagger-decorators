@@ -7,6 +7,7 @@ export type SchemaRef = {
   example?: string;
   items?: {
     $ref?: any;
+    type?: string;
   }
 }
 
